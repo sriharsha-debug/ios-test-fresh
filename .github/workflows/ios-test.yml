@@ -1,0 +1,40 @@
+name: iOS Automation Tests
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  ios-test:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Appium
+        run: npm install -g appium@3.3.1
+
+      - name: Install XCUITest driver
+        run: appium driver install xcuitest
+
+      - name: Boot Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep "iPhone 16 " | grep -v "Plus\|Pro\|Max" | head -1 | grep -E -o '[0-9A-F-]{36}')
+          echo "UDID: $UDID"
+          xcrun simctl boot "$UDID" || true
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          sleep 60
+
+      - name: Run iOS Tests
+        timeout-minutes: 30
+        run: npm run wdio
